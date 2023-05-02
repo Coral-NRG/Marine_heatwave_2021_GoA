@@ -1,0 +1,167 @@
+---
+title: "Clean version of statistics and plots- MHW2021GoA"
+author: "NRG"
+date: "02.05.23"
+output: html_document
+---
+
+
+
+
+
+
+Greetings,
+The following code refers to the variable host carbohydrates, as an example. 
+Any other parameter can be implemented here from the data file.  
+NRG.
+
+
+
+
+
+```{r, echo=FALSE}
+library(utils)
+library(pacman)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(MuMIN)
+library(tidyverse)
+library(stats)
+library(mvabund)
+library(lmerTest)
+library(mvabund)
+library (dplyr)
+library(car)
+library(rstatix)
+library(ggplot2)
+library(tidyr)
+library(visreg)
+library(rstatix)
+library(PMCMRplus)
+library(PMCMR)
+library(Rmisc)
+library(utils)
+library(vegan)
+library(readr)
+library(predictmeans)
+library(emmeans)
+```
+
+```{r}
+rm(list=ls())
+
+Physio=read.csv("Physiology_results_MHW_for_publishing.csv")
+head(Physio)
+
+colnames(Physio)
+
+Physio$Month= factor(Physio$Month, levels = c("February","March", "April", "May", "June",
+                                        "July", "August", "September", "October",
+                                        "November", "December", "January"))
+
+levels(Physio$Month)
+Physio$Host_Carbs_mg.cm2=as.numeric(Physio$Host_Carbs_mg.cm2)
+
+
+str(Physio)
+
+Physio_Sty= Physio %>% filter(Species=="Stylophora")%>% drop_na(Host_Carbs_mg.cm2)
+Physio_Sty$Month= factor(Physio_Sty$Month, levels = c("February","March", "April", "May", "June","July", "August", "September", "October","November" , "December", "January"))
+
+Physio_Poc= Physio %>% filter(Species=="Pocillopora")%>% drop_na(Host_Carbs_mg.cm2)
+Physio_Poc$Month= factor(Physio_Poc$Month, levels = c("February","March", "April", "May", "June","July", "August", "September", "October", "November", "December", "January"))
+
+str(Physio)
+```
+
+Stylophora:
+
+```{r}
+plot(Physio_Sty$Host_Carbs_mg.cm2)  
+
+leveneTest(Host_Carbs_mg.cm2~ Month, Physio_Sty) 
+leveneTest(Host_Carbs_mg.cm2~ Colony, Physio_Sty)
+
+```
+
+```{r}
+Host_Carbs_mg.cm2_lmer = lmer(Host_Carbs_mg.cm2~ Month + (1|Colony), data = Physio_Sty, REML=FALSE)
+summary(Host_Carbs_mg.cm2_lmer, infer=T)
+anova(Host_Carbs_mg.cm2_lmer)
+
+residplot(Host_Carbs_mg.cm2_lmer, group = "Month")
+qqnorm(resid(Host_Carbs_mg.cm2_lmer))
+qqline(resid(Host_Carbs_mg.cm2_lmer))
+
+
+```
+Post-hoc analysis:
+```{r}
+lsmeans(Host_Carbs_mg.cm2_lmer, pairwise~Month, adjust="tukey")
+
+```
+
+
+
+```{r}
+Host_Carbs_Sty= ggplot()+
+  geom_boxplot(data=Physio_Sty, aes(x=Month, y=Host_Carbs_mg.cm2))+
+    geom_point(data=Physio_Sty, aes(x=Month, y=Host_Carbs_mg.cm2, color= Colony),position= position_jitterdodge(), size=2)+
+  scale_color_manual(values=c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"))+
+  theme_classic(base_size = 16)+
+  theme(legend.position = "none",axis.text.x=element_text(angle=45, vjust=0.7))+
+  ylab(expression(~Carbohydrates~(mg~cm^{-2})))+
+   scale_y_continuous(limits = c(0.0, 0.50))
+
+Host_Carbs_Sty
+
+ggsave("Host_Carbs_Sty.jpeg", width=20, height= 10, units= "cm", dpi=600)
+
+```
+
+
+
+Pocillopora:
+
+Stats:
+```{r}
+
+plot(Physio_Poc$Host_Carbs_mg.cm2)  
+
+leveneTest(Host_Carbs_mg.cm2~ Month, Physio_Poc) 
+leveneTest(Host_Carbs_mg.cm2~ Colony, Physio_Poc)
+```
+
+```{r}
+Host_Carbs_mg.cm2_lmer = lmer(Host_Carbs_mg.cm2~ Month + (1|Colony), data = Physio_Poc, REML=FALSE)
+summary(Host_Carbs_mg.cm2_lmer)
+anova(Host_Carbs_mg.cm2_lmer)
+residplot(Host_Carbs_mg.cm2_lmer, group = "Month")
+qqnorm(resid(Host_Carbs_mg.cm2_lmer))
+qqline(resid(Host_Carbs_mg.cm2_lmer))
+```
+Post-hoc analysis:
+
+```{r}
+lsmeans(Host_Carbs_mg.cm2_lmer, pairwise~Month, adjust="tukey")
+```
+
+```{r}
+Host_Carbs_Poc= ggplot()+
+  geom_boxplot(data=Physio_Poc, aes(x=Month, y=Host_Carbs_mg.cm2))+
+    geom_point(data=Physio_Poc, aes(x=Month, y=Host_Carbs_mg.cm2, color= Colony),position= position_jitterdodge(), size=2)+
+  scale_color_manual(values=c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"))+
+  theme_classic(base_size = 16)+
+  theme(legend.position = "none",axis.text.x=element_text(angle=45, vjust=0.7))+
+  ylab(expression(Carbohydrates~(mg~cm^{-2})))+
+   scale_y_continuous(limits = c(0, 0.3))
+
+Host_Carbs_Poc
+
+ggsave("Host_Carbs_Poc_new.jpeg", width=20, height= 10, units= "cm", dpi=600)
+
+```
+
+
+
